@@ -1,2 +1,2 @@
 # Freezer
-A unique cloud storate application
+A unique cloud storage application
