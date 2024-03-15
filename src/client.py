@@ -20,6 +20,7 @@ def log_print(*args, **kwargs):
 
 
 def main():
+
     hostname = "localhost"
     hostport = 13000
 
@@ -29,9 +30,26 @@ def main():
     client_socket.connect((hostname, hostport))
     log_print("Connected to server")
 
+    """ USER VALIDATION """
+
+    while True:
+        username = input("Username: ")
+        password = input("Password: ")  # hide characters on screen
+
+        validation_request = f"VALIDATE$$$$${username}$$$$${password}"
+        client_socket.sendall(validation_request.encode())  # encrypt validation message
+
+        validation_response = client_socket.recv(1024).decode()
+        if validation_response.startswith("GRANTED"):
+            break
+        else:
+            log_print("Invalid username or password")
+
+    """ FILE UPLOAD/DOWNLOAD """
+
     filename = input("Filename: ")
 
-    client_socket.sendall(filename.encode())
+    client_socket.sendall(f"UPLOAD$$$$${filename}".encode())
 
     with open(filename, 'rb') as f:
         while True:
