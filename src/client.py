@@ -44,30 +44,51 @@ def main():
         else:
             log_print("Invalid username or password")
 
-    """ FILE UPLOAD """
+    menu_option = input("Transmission (t) of Retrieval (r): ")
+    if menu_option == "t":
 
-    filename = input("Filename: ")
+        """ FILE UPLOAD """
 
-    client_socket.sendall(f"UPLOAD$$$$${filename}".encode())
+        filename = input("Filename: ")
 
-    file_transfer_response = client_socket.recv(1024).decode()
-    log_print("Received READY message from server")
+        client_socket.sendall(f"UPLOAD$$$$${filename}".encode())
 
-    if file_transfer_response == "READY_TO_RECEIVE":
-        log_print("Sending file...")
-        with open(filename, 'rb') as f:
+        file_transfer_response = client_socket.recv(1024).decode()
+
+        if file_transfer_response == "READY_TO_RECEIVE":
+            log_print("Received READY message from server")
+            log_print("Sending file...")
+            with open(filename, 'rb') as f:
+                while True:
+                    data = f.read(1024)
+                    if not data:
+                        break
+                    client_socket.sendall(data)
+            log_print("File sent")
+
+        # conformation of file transmission status from server
+        # file works only after the socket has been closed
+        # file_confirmation_message = client_socket.recv(1024).decode()
+        # if file_confirmation_message == "FILE_RECEIVED":
+        #     log_print("File received by server successfully!")
+
+    elif menu_option == "r":
+
+        """ FILE DOWNLOAD"""
+
+        filename = input("Filename: ")
+
+        client_socket.sendall(f"DOWNLOAD$$$$${filename}".encode())
+        client_socket.sendall("READY_TO_RECEIVE".encode())
+
+        log_print("Receiving file:", filename)
+        with open(filename, 'wb') as f:
             while True:
-                data = f.read(1024)
+                data = client_socket.recv(1024)
                 if not data:
                     break
-                client_socket.sendall(data)
-        log_print("File sent")
-
-    # conformation of file transmission status from server
-    # file works only after the socket has been closed
-    # file_confirmation_message = client_socket.recv(1024).decode()
-    # if file_confirmation_message == "FILE_RECEIVED":
-    #     log_print("File received successfully!")
+                f.write(data)
+        log_print("File received successfully!")
 
     client_socket.close()
     log_print("Socket closed")

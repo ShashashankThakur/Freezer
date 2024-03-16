@@ -88,6 +88,30 @@ def main():
                 log_print("Sent FILE_RECEIVED message to client")
                 break
 
+            if message_type == "DOWNLOAD" and user_validated is True:
+                file_transfer = message
+                filename = file_transfer[1]
+                file_transfer_response = connection_socket.recv(1024).decode()
+
+                if file_transfer_response == "READY_TO_RECEIVE":
+                    log_print("Received READY message from client")
+                    log_print("Sending file...")
+                    with open(filename, 'rb') as f:
+                        while True:
+                            data = f.read(1024)
+                            if not data:
+                                break
+                            connection_socket.sendall(data)
+                    log_print("File sent")
+
+                    # conformation of file transmission status from client
+                    # file works only after the socket has been closed
+                    # file_confirmation_message = connection_socket.recv(1024).decode()
+                    # if file_confirmation_message == "FILE_RECEIVED":
+                    #     log_print("File received by client successfully!")
+
+                    break
+
             else:
                 pass
 
