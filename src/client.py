@@ -20,7 +20,6 @@ def log_print(*args, **kwargs):
 
 
 def main():
-
     hostname = "localhost"
     hostport = 13000
 
@@ -45,21 +44,30 @@ def main():
         else:
             log_print("Invalid username or password")
 
-    """ FILE UPLOAD/DOWNLOAD """
+    """ FILE UPLOAD """
 
     filename = input("Filename: ")
 
     client_socket.sendall(f"UPLOAD$$$$${filename}".encode())
 
-    with open(filename, 'rb') as f:
-        while True:
-            # chunks of 1024 bits
-            data = f.read(1024)
-            if not data:
-                break
-            client_socket.sendall(data)
+    file_transfer_response = client_socket.recv(1024).decode()
+    log_print("Received READY message from server")
 
-    log_print("File sent successfully!")
+    if file_transfer_response == "READY_TO_RECEIVE":
+        log_print("Sending file...")
+        with open(filename, 'rb') as f:
+            while True:
+                data = f.read(1024)
+                if not data:
+                    break
+                client_socket.sendall(data)
+        log_print("File sent")
+
+    # conformation of file transmission status from server
+    # file works only after the socket has been closed
+    # file_confirmation_message = client_socket.recv(1024).decode()
+    # if file_confirmation_message == "FILE_RECEIVED":
+    #     log_print("File received successfully!")
 
     client_socket.close()
     log_print("Socket closed")

@@ -48,6 +48,8 @@ def main():
         log_print(f"Connected to {client_address[0]} port {client_address[1]}")
         log_print("Ready to receive...")
 
+        user_validated = False
+
         while True:
             message = connection_socket.recv(1024).decode().split("$$$$$")
             message_type = message[0]
@@ -60,15 +62,20 @@ def main():
                 password = validation_request[2]
                 if validate_user(username, password):
                     connection_socket.sendall(f"GRANTED$$$$${username} is a valid user".encode())
+                    log_print(f"User {username} has logged on")
+                    user_validated = True
+                    continue
                 else:
                     connection_socket.sendall(f"DENIED$$$$${username} is not a valid user".encode())
                     continue
 
-            """ FILE UPLOAD/DOWNLOAD """
+            """ FILE UPLOAD """
 
-            if message_type == "UPLOAD":
+            if message_type == "UPLOAD" and user_validated is True:
                 file_transfer = message
                 filename = file_transfer[1]
+                connection_socket.sendall(f"READY_TO_RECEIVE".encode())
+                log_print("Sent READY message to client")
                 log_print("Receiving file:", filename)
                 with open(filename, 'wb') as f:
                     while True:
@@ -77,6 +84,9 @@ def main():
                             break
                         f.write(data)
                 log_print("File received successfully!")
+                connection_socket.sendall(f"FILE_RECEIVED".encode())
+                log_print("Sent FILE_RECEIVED message to client")
+                break
 
             else:
                 pass
