@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from socket import *
+import time as tt
 
 
 def time():
@@ -56,8 +57,7 @@ def main():
         file_transfer_response = client_socket.recv(1024).decode()
 
         if file_transfer_response == "READY_TO_RECEIVE":
-            log_print("Received READY message from server")
-            log_print("Sending file...")
+            log_print("Server is ready to receive file")
             with open(filename, 'rb') as f:
                 while True:
                     data = f.read(1024)
@@ -66,11 +66,13 @@ def main():
                     client_socket.sendall(data)
             log_print("File sent")
 
-        # conformation of file transmission status from server
-        # file works only after the socket has been closed
-        # file_confirmation_message = client_socket.recv(1024).decode()
-        # if file_confirmation_message == "FILE_RECEIVED":
-        #     log_print("File received by server successfully!")
+        client_socket.sendall(b'\xFF')  # signal end of transmission
+        client_socket.sendall(f"CONFIRM_TRANSFER$$$$${filename}".encode())
+        file_transfer_acknowledge = client_socket.recv(1024).decode()
+        if file_transfer_acknowledge == "TRANSFER_COMPLETE":
+            log_print("File received by server successfully")
+        else:
+            log_print("No confirmation message received from server")
 
     elif menu_option == "r":
 
@@ -85,10 +87,15 @@ def main():
         with open(filename, 'wb') as f:
             while True:
                 data = client_socket.recv(1024)
-                if not data:
+                if data == b'\xFF':
                     break
                 f.write(data)
+
         log_print("File received successfully!")
+
+        file_transfer_acknowledge = client_socket.recv(1024).decode().split("$$$$$")
+        if file_transfer_acknowledge[0] == "CONFIRM_TRANSFER" and file_transfer_acknowledge[1] == f"{filename}":
+            client_socket.sendall(f"TRANSFER_COMPLETE".encode())
 
     client_socket.close()
     log_print("Socket closed")

@@ -75,18 +75,24 @@ def main():
                 file_transfer = message
                 filename = file_transfer[1]
                 connection_socket.sendall(f"READY_TO_RECEIVE".encode())
-                log_print("Sent READY message to client")
+                log_print("Ready to receive file from client client")
                 log_print("Receiving file:", filename)
                 with open(filename, 'wb') as f:
                     while True:
                         data = connection_socket.recv(1024)
-                        if not data:
+                        if data == b'\xFF':
                             break
                         f.write(data)
-                log_print("File received successfully!")
-                connection_socket.sendall(f"FILE_RECEIVED".encode())
-                log_print("Sent FILE_RECEIVED message to client")
+
+                file_transfer_acknowledge = connection_socket.recv(1024).decode().split("$$$$$")
+                if file_transfer_acknowledge[0] == "CONFIRM_TRANSFER" and file_transfer_acknowledge[1] == f"{filename}":
+                    connection_socket.sendall(f"TRANSFER_COMPLETE".encode())
+
+                log_print("File received from client successfully")
+
                 break
+
+            """ FILE DOWNLOAD """
 
             if message_type == "DOWNLOAD" and user_validated is True:
                 file_transfer = message
@@ -94,8 +100,7 @@ def main():
                 file_transfer_response = connection_socket.recv(1024).decode()
 
                 if file_transfer_response == "READY_TO_RECEIVE":
-                    log_print("Received READY message from client")
-                    log_print("Sending file...")
+                    log_print("Client is ready to receive file")
                     with open(filename, 'rb') as f:
                         while True:
                             data = f.read(1024)
@@ -104,16 +109,18 @@ def main():
                             connection_socket.sendall(data)
                     log_print("File sent")
 
-                    # conformation of file transmission status from client
-                    # file works only after the socket has been closed
-                    # file_confirmation_message = connection_socket.recv(1024).decode()
-                    # if file_confirmation_message == "FILE_RECEIVED":
-                    #     log_print("File received by client successfully!")
+                    connection_socket.sendall(b'\xFF')  # signal end of transmission
+                    connection_socket.sendall(f"CONFIRM_TRANSFER$$$$${filename}".encode())
+                    file_transfer_acknowledge = connection_socket.recv(1024).decode()
+                    if file_transfer_acknowledge == "TRANSFER_COMPLETE":
+                        log_print("File received by client successfully")
+                    else:
+                        log_print("No confirmation message received from client")
 
                     break
 
             else:
-                pass
+                break
 
         connection_socket.close()
         log_print("Connection socket closed")
