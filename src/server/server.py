@@ -6,8 +6,8 @@ import csv
 from datetime import datetime
 from socket import *
 
-USER_DATABASE = "server_database1.csv"
-FILES_DATABASE = "server_database2.csv"
+USER_DATABASE = "_database_server_1.csv"
+FILES_DATABASE = "_database_server_2.csv"
 
 
 def time():
@@ -30,6 +30,49 @@ def validate_user(username, password):
             if row[0] == username and row[1] == password:
                 return True
     return False
+
+
+def receive_file(connection_socket, filename):
+    connection_socket.sendall(f"READY_TO_RECEIVE".encode())
+    log_print("Ready to receive file from client client")
+    log_print("Receiving file:", filename)
+    with open(filename, 'wb') as f:
+        while True:
+            data = connection_socket.recv(1024)
+            if data == b'##########\xFF##########':
+                break
+            f.write(data)
+
+    log_print("File received from client")
+
+    file_transfer_acknowledge = connection_socket.recv(1024).decode().split("$$$$$")
+    if file_transfer_acknowledge[0] == "CONFIRM_TRANSFER" and file_transfer_acknowledge[1] == filename:
+        connection_socket.sendall(f"TRANSFER_COMPLETE".encode())
+        return True
+
+    return False
+
+
+def send_file(connection_socket, filename):
+    log_print("Client is ready to receive file")
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(1024)
+            if not data:
+                break
+            connection_socket.sendall(data)
+    connection_socket.sendall(b'##########\xFF##########')  # signal end of transmission
+
+    log_print("File sent")
+    connection_socket.sendall(f"CONFIRM_TRANSFER$$$$${filename}".encode())
+    file_transfer_acknowledge = connection_socket.recv(1024).decode()
+    if file_transfer_acknowledge == "TRANSFER_COMPLETE":
+        log_print("File received by client successfully")
+        return True
+
+    else:
+        log_print("No confirmation message received from client")
+        return False
 
 
 def main():
@@ -74,23 +117,8 @@ def main():
             if message_type == "UPLOAD" and user_validated is True:
                 file_transfer = message
                 filename = file_transfer[1]
-                connection_socket.sendall(f"READY_TO_RECEIVE".encode())
-                log_print("Ready to receive file from client client")
-                log_print("Receiving file:", filename)
-                with open(filename, 'wb') as f:
-                    while True:
-                        data = connection_socket.recv(1024)
-                        if data == b'\xFF':
-                            break
-                        f.write(data)
 
-                file_transfer_acknowledge = connection_socket.recv(1024).decode().split("$$$$$")
-                if file_transfer_acknowledge[0] == "CONFIRM_TRANSFER" and file_transfer_acknowledge[1] == f"{filename}":
-                    connection_socket.sendall(f"TRANSFER_COMPLETE".encode())
-
-                log_print("File received from client successfully")
-
-                break
+                receive_file(connection_socket, filename)
 
             """ FILE DOWNLOAD """
 
@@ -100,24 +128,8 @@ def main():
                 file_transfer_response = connection_socket.recv(1024).decode()
 
                 if file_transfer_response == "READY_TO_RECEIVE":
-                    log_print("Client is ready to receive file")
-                    with open(filename, 'rb') as f:
-                        while True:
-                            data = f.read(1024)
-                            if not data:
-                                break
-                            connection_socket.sendall(data)
-                    log_print("File sent")
 
-                    connection_socket.sendall(b'\xFF')  # signal end of transmission
-                    connection_socket.sendall(f"CONFIRM_TRANSFER$$$$${filename}".encode())
-                    file_transfer_acknowledge = connection_socket.recv(1024).decode()
-                    if file_transfer_acknowledge == "TRANSFER_COMPLETE":
-                        log_print("File received by client successfully")
-                    else:
-                        log_print("No confirmation message received from client")
-
-                    break
+                    send_file(connection_socket, filename)
 
             else:
                 break
