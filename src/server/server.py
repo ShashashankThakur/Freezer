@@ -5,9 +5,11 @@
 import csv
 from datetime import datetime
 from socket import *
+import sqlite3
 
-USER_DATABASE = "_database_server_1.csv"
-FILES_DATABASE = "_database_server_2.csv"
+# TODO: freezer integration
+
+USER_DATABASE = "_database_server.db"
 
 
 def time():
@@ -24,12 +26,11 @@ def log_print(*args, **kwargs):
 
 
 def validate_user(username, password):
-    with open(USER_DATABASE, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            if row[0] == username and row[1] == password:
-                return True
-    return False
+    with sqlite3.connect(USER_DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT password_hash FROM users WHERE username=?", (username,))
+        user = cursor.fetchone()
+        return user and user[0] == password
 
 
 def receive_file(connection_socket, filename):
@@ -89,7 +90,7 @@ def main():
         connection_socket, client_address = server_socket.accept()
         log_print("Connection Socket created")
         log_print(f"Connected to {client_address[0]} port {client_address[1]}")
-        log_print("Ready to receive...")
+        log_print("Ready to receive or transmit...")
 
         user_validated = False
 

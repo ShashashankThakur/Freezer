@@ -4,6 +4,7 @@
 
 from datetime import datetime
 from socket import *
+import hashlib
 
 
 def time():
@@ -87,8 +88,8 @@ def validate_user(client_socket):
         username = input("Username: ")
         password = input("Password: ")  # hide characters on screen
 
-        validation_request = f"VALIDATE$$$$${username}$$$$${password}"
-        client_socket.sendall(validation_request.encode())  # encrypt validation message
+        validation_request = f"VALIDATE$$$$${username}$$$$${hashlib.sha256(password.encode()).hexdigest()}"
+        client_socket.sendall(validation_request.encode())
 
         validation_response = client_socket.recv(1024).decode()
         if validation_response.startswith("GRANTED"):
