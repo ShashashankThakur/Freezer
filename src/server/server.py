@@ -5,6 +5,7 @@
 import csv
 from datetime import datetime
 from socket import *
+from freezer import Freezer
 import sqlite3
 
 # TODO: freezer integration
@@ -121,6 +122,9 @@ def main():
 
                 receive_file(connection_socket, filename)
 
+                freezer = Freezer()
+                freezer.login()
+
             """ FILE DOWNLOAD """
 
             if message_type == "DOWNLOAD" and user_validated is True:
@@ -131,6 +135,9 @@ def main():
                 if file_transfer_response == "READY_TO_RECEIVE":
 
                     send_file(connection_socket, filename)
+
+                freezer = Freezer()
+                freezer.login()
 
             else:
                 break

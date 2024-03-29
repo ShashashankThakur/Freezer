@@ -40,8 +40,6 @@ def send_file(client_socket):
                 client_socket.sendall(data)
         log_print("File sent")
 
-    # TODO: Error handling: File not found on client side
-
     client_socket.sendall(b'##########\xFF##########')  # signal end of transmission
     client_socket.sendall(f"CONFIRM_TRANSFER$$$$${filename}".encode())
     file_transfer_acknowledge = client_socket.recv(1024).decode()
